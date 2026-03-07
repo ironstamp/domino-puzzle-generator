@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Domino Chain Puzzle Generator</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'], ['\\(','\\)']] },
+    svg: { fontCache: 'global' },
+    startup: { typeset: false }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #f5f2ed;
+    --panel:   #ffffff;
+    --dark:    #1e1e2e;
+    --accent:  #2d6a4f;
+    --accent2: #b5451b;
+    --mid:     #5a5a72;
+    --light:   #eae6de;
+    --border:  #d4cec2;
+    --q-bg:    #e8f0fb;
+    --q-fg:    #1a3a6b;
+    --a-bg:    #e8f5ec;
+    --a-fg:    #1a5c2e;
+    --shadow:  0 3px 18px rgba(0,0,0,0.09);
+  }
+
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--dark);
+    color: #fff;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 3px solid var(--accent);
+  }
+  header h1 { font-family: 'Lora', serif; font-size: 1.45rem; font-weight: 700; letter-spacing: -0.01em; }
+  .badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.63rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 57px); }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sb-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sb-section h3 {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 10px;
+  }
+
+  .field { margin-bottom: 9px; }
+  .field label { display: block; font-size: 0.76rem; font-weight: 600; color: var(--mid); margin-bottom: 3px; }
+  .field input, .field textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 9px;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    transition: border-color 0.15s;
+    resize: none;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* Pairs list */
+  .pairs-header {
+    padding: 10px 16px 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 28px;
+    gap: 6px;
+  }
+  .pairs-header span {
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mid);
+    text-align: center;
+  }
+
+  .pairs { flex: 1; overflow-y: auto; padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 5px; }
+
+  .pair-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 28px;
+    gap: 5px;
+    align-items: start;
+  }
+  .pair-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .pair-cell input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 0.79rem;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    transition: border-color 0.15s;
+  }
+  .pair-cell input:focus { outline: none; border-color: var(--accent); }
+  .pair-cell input::placeholder { color: #bbb; font-style: italic; }
+  .img-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    background: var(--light);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--mid);
+    transition: all 0.15s;
+    width: fit-content;
+  }
+  .img-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .img-indicator { font-size: 0.8rem; }
+  .img-thumb {
+    max-height: 36px;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+  }
+  .img-thumb:hover { opacity: 1; border-color: var(--accent2); }
+  /* Image inside a card */
+  .card-img {
+    max-width: 92%;
+    max-height: 80px;     /* thumbnail on screen */
+    object-fit: contain;
+    display: block;
+    margin: 4px auto 0;
+  }
+  /* At print time, give images more room */
+  @media print {
+    .card-img { max-height: 180px; }
+  }
+  /* Text label above image inside a card */
+  .cell-text {
+    text-align: center;
+    line-height: 1.3;
+    font-size: 0.78rem;
+    margin-bottom: 2px;
+  }
+  /* Image in answer key table */
+  .ak-img {
+    display: block;
+    max-height: 60px;
+    max-width: 160px;
+    object-fit: contain;
+    margin-top: 4px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  .del {
+    background: none; border: none; cursor: pointer;
+    color: #ccc; font-size: 0.85rem;
+    width: 26px; height: 26px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .del:hover { background: #fee; color: var(--accent2); }
+
+  /* Footer */
+  .sb-foot {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .hint {
+    font-size: 0.72rem;
+    color: var(--mid);
+    line-height: 1.5;
+    background: var(--light);
+    border-radius: 5px;
+    padding: 7px 10px;
+  }
+  .hint code { background: white; border-radius: 3px; padding: 1px 4px; font-size: 0.78rem; color: var(--accent2); }
+
+  .btn {
+    padding: 9px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.83rem;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-dark    { background: var(--dark); color: #fff; }
+  .btn-dark:hover { background: #2e2e4a; }
+  .btn-green   { background: var(--accent); color: #fff; }
+  .btn-green:hover { filter: brightness(1.08); }
+  .btn-red     { background: var(--accent2); color: #fff; }
+  .btn-red:hover { filter: brightness(1.1); }
+  .btn-ghost   { background: var(--light); color: var(--dark); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .btn-row { display: flex; gap: 7px; }
+
+  /* ── MAIN PREVIEW ── */
+  .main { overflow-y: auto; overflow-x: hidden; padding: 28px 32px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+  .status-bar {
+    font-size: 0.8rem;
+    color: var(--mid);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    max-width: 720px;
+    width: 100%;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .status-bar strong { color: var(--dark); }
+
+  /* ── THE PUZZLE SHEET ── */
+  #sheet {
+    background: white;
+    width: 100%;          /* fluid on screen — fills the preview pane */
+    max-width: 960px;     /* don't go crazy wide */
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 28px 28px 24px;
+  }
+
+  .sheet-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    border-bottom: 2.5px solid var(--dark);
+    padding-bottom: 12px;
+  }
+  .sheet-title { font-family: 'Lora', serif; font-size: 1.5rem; font-weight: 700; color: var(--dark); }
+  .sheet-sub { font-size: 0.8rem; color: var(--mid); margin-top: 3px; }
+  .sheet-meta { font-size: 0.75rem; color: var(--mid); text-align: right; line-height: 1.6; }
+
+  .sheet-instructions {
+    margin: 12px 0 20px;
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: var(--mid);
+    background: #f8f6f2;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 5px 5px 0;
+    padding: 9px 14px;
+  }
+
+  /* Domino cards */
+  .cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  .domino {
+    /* width + height both set dynamically by equaliseAndPaginate() */
+    width: 210px;  /* initial measurement width — overwritten by JS */
+    min-height: 80px;
+    display: flex;
+    border-radius: 7px;
+    overflow: visible;
+    border: 1.5px solid #c8c0b0;
+    position: relative;
+    page-break-inside: avoid;
+  }
+  .domino.sized {
+    overflow: hidden;
+  }
+  .dom-half {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    text-align: center;
+    line-height: 1.4;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .dom-half .inner {
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .dom-q { background: var(--q-bg); color: var(--q-fg); }
+  .dom-a { background: var(--a-bg); color: var(--a-fg); }
+  .dom-special { background: #f0f0f0; color: #888; font-size: 0.72rem; font-style: italic; }
+
+  /* Dividing line between halves */
+  .dom-divider {
+    position: absolute;
+    left: 50%; top: 8%; bottom: 8%;
+    width: 1.5px;
+    background: #c8c0b0;
+    pointer-events: none;
+  }
+  /* Small card label */
+  .dom-label {
+    position: absolute;
+    bottom: 2px; right: 5px;
+    font-size: 0.58rem;
+    color: #bbb;
+    font-weight: 600;
+    pointer-events: none;
+  }
+
+  /* Cut lines */
+  .cut-line {
+    width: 100%;
+    border: none;
+    border-top: 1.5px dashed #ccc;
+    margin: 14px 0 4px;
+  }
+  .cut-label {
+    font-size: 0.65rem;
+    color: #bbb;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Answer key */
+  .answer-key {
+    margin-top: 28px;
+    border-top: 2px dashed #ccc;
+    padding-top: 16px;
+    page-break-before: always;
+  }
+  .ak-head {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 12px;
+  }
+
+  /* Chain sequence row */
+  .ak-chain {
+    background: #f8f6f2;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 11px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .ak-chain-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--mid);
+    white-space: nowrap;
+  }
+  .ak-chain-sequence {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    row-gap: 6px;
+  }
+  .ak-card-lbl {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    background: var(--dark);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .ak-arrow {
+    color: #bbb;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  /* Detail table */
+  .ak-table-wrap { overflow-x: auto; }
+  .ak-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .ak-table th {
+    text-align: left;
+    padding: 5px 10px;
+    color: var(--mid);
+    font-weight: 600;
+    border-bottom: 1px solid #ddd;
+  }
+  .ak-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f2f2f2;
+    vertical-align: middle;
+  }
+  .ak-table td:first-child { color: var(--dark); font-weight: 700; width: 44px; }
+  .ak-q { color: var(--q-fg); }
+  .ak-a { color: var(--a-fg); font-weight: 500; }
+
+  /* ── PRINT PAGES ── */
+  /* Each .print-page is one A4 sheet of cards */
+  .print-page {
+    page-break-after: always;
+    break-after: page;
+  }
+  .print-page:last-of-type {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  /* Continuation header shown on pages 2+ */
+  .page-cont-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    font-size: 0.78rem;
+    color: var(--mid);
+  }
+  .page-cont-header strong { color: var(--dark); font-family: 'Lora', serif; font-size: 1rem; }
+  .page-num { font-size: 0.72rem; color: #aaa; }
+
+  /* Answer key always on its own page */
+  .answer-key {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* ── PRINT MEDIA ── */
+  @media print {
+    /* Hide all chrome */
+    body { background: white; }
+    header, .sidebar, .status-bar, .main > *:not(#sheet) { display: none !important; }
+
+    /* Kill scrollbars — but NOT on domino cards (they need overflow:hidden for rounded corners) */
+    *:not(.domino):not(.dom-half) { overflow: visible !important; }
+
+    /* Layout */
+    .app  { display: block; }
+    .main { padding: 0; overflow: visible !important; }
+    #sheet {
+      box-shadow: none;
+      border-radius: 0;
+      width: 720px !important;
+      max-width: 720px !important;
+      padding: 12px 20px;
+      overflow: visible !important;
+    }
+
+    /* ── Black & white cards ── */
+    .dom-q, .dom-a, .dom-special {
+      background: white !important;
+      color: black !important;
+    }
+    /* Dividing line — use border rather than background so it always prints */
+    .dom-divider {
+      background: none !important;
+      border-left: 1.5px solid #000 !important;
+      width: 0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    /* Card: solid black border, rounded corners preserved, overflow clipped to shape */
+    .domino {
+      border: 1.5px solid #000 !important;
+      border-radius: 7px !important;
+      overflow: hidden !important;
+    }
+
+    /* Answer key text black */
+    .ak-q, .ak-a, .ak-table td, .ak-table th { color: black !important; }
+    .ak-card-lbl { background: #000 !important; color: white !important; }
+    .ak-chain { background: white !important; border: 1px solid #ccc !important; }
+
+    /* Controlled by printCards() / printKey() via body classes */
+    body.print-cards-only .answer-key { display: none !important; }
+    body.print-key-only   .print-page  { display: none !important; }
+    body.print-key-only   .sheet-title-row,
+    body.print-key-only   .sheet-instructions { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Domino Chain Puzzle</h1>
+  <span class="badge">Print-Ready</span>
+</header>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <h3>Puzzle Settings</h3>
+      <div class="field">
+        <label>Title</label>
+        <input id="cfg-title" oninput="markDirty()" value="Algebra Domino Chain">
+      </div>
+      <div class="field">
+        <label>Subtitle / Topic</label>
+        <input id="cfg-sub" oninput="markDirty()" value="NCEA Level 2 — Indices &amp; Logs">
+      </div>
+      <div class="field">
+        <label>Student Instructions</label>
+        <textarea id="cfg-instr" rows="2">Cut out the cards and shuffle them. Arrange them in a chain so that each answer on the right matches the question on the left of the next card. One card starts the chain and one ends it.</textarea>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+        <input type="checkbox" id="cfg-key" checked style="width:auto; accent-color: var(--accent);">
+        <label for="cfg-key" style="font-size:0.8rem; font-weight:500; cursor:pointer; user-select:none;">Include answer key (teacher copy)</label>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:7px;">
+        <input type="checkbox" id="cfg-shuffle" checked onchange="markDirty()" style="width:auto; accent-color: var(--accent);">
+        <label for="cfg-shuffle" style="font-size:0.8rem; font-weight:500; cursor:pointer; user-select:none;">Shuffle card order before printing</label>
+      </div>
+    </div>
+
+    <!-- Column headers -->
+    <div class="pairs-header">
+      <span>Question</span>
+      <span>Answer</span>
+      <span></span>
+    </div>
+
+    <div class="pairs" id="pairs-list"></div>
+
+    <div class="sb-foot">
+      <div class="hint">
+        Use <code>$...$</code> for maths — e.g. <code>$x^2+3x$</code>, <code>$\frac{a}{b}$</code>, <code>$\log_2 8$</code>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" style="flex:1" onclick="addPair()">+ Add Pair</button>
+        <button class="btn btn-dark" style="flex:1" onclick="generatePuzzle()">Generate ▶</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-green" style="flex:1" onclick="printCards()">🖨 Print Cards</button>
+        <button class="btn btn-red"   style="flex:1" onclick="printKey()">🗝 Print Key</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN PREVIEW -->
+  <main class="main">
+    <div class="status-bar" id="status">
+      Enter question/answer pairs in the sidebar, then click <strong>Generate ▶</strong>
+    </div>
+    <div id="sheet">
+      <div style="padding:60px; text-align:center; color:#ccc; font-size:0.95rem;">
+        Your puzzle will appear here
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ─── Default pairs ────────────────────────────────────────────────────────
+let pairs = [
+  { q: "$2^4$",                                     a: "$16$"                  },
+  { q: "$3^{-2}$",                                  a: "$\\frac{1}{9}$"        },
+  { q: "$\\log_2 32$",                              a: "$5$"                   },
+  { q: "$\\log_{10} 0.001$",                        a: "$-3$"                  },
+  { q: "$e^0$",                                     a: "$1$"                   },
+  { q: "$\\sqrt[3]{27}$",                           a: "$3$"                   },
+  { q: "$5^0$",                                     a: "$1$"                   },
+  { q: "$\\log_3 81$",                              a: "$4$"                   },
+];
+
+// ─── Dirty flag ───────────────────────────────────────────────────────────
+// True whenever pairs/settings have changed since last generatePuzzle() call.
+// Print buttons check this to avoid reshuffling unnecessarily.
+let puzzleDirty = true;  // start dirty so first Generate works
+let lastPairsSnapshot = '';  // JSON snapshot of pairs+settings at last generate
+
+// images[i] = { q: dataURL|null, a: dataURL|null }
+const images = {};
+
+function markDirty() { puzzleDirty = true; }
+
+function settingsSnapshot() {
+  return JSON.stringify({
+    pairs,
+    title: document.getElementById('cfg-title')?.value,
+    sub:   document.getElementById('cfg-sub')?.value,
+    instr: document.getElementById('cfg-instr')?.value,
+    key:   document.getElementById('cfg-key')?.checked,
+    shuf:  document.getElementById('cfg-shuffle')?.checked,
+  });
+}
+
+// ─── Sidebar rendering ────────────────────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('pairs-list');
+  list.innerHTML = '';
+  pairs.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'pair-row';
+    const qImg = images[i]?.q;
+    const aImg = images[i]?.a;
+    row.innerHTML = `
+      <div class="pair-cell">
+        <input value="${esc(p.q)}" placeholder="e.g. $x^2$"
+               oninput="pairs[${i}].q = this.value; markDirty();">
+        <label class="img-upload-btn" title="Upload image for question">
+          ${qImg ? '<span class="img-indicator">🖼</span>' : '📎'}
+          <input type="file" accept="image/*" style="display:none"
+                 onchange="handleImage(event, ${i}, 'q')">
+        </label>
+        ${qImg ? `<img src="${qImg}" class="img-thumb" onclick="clearImage(${i},'q')" title="Click to remove">` : ''}
+      </div>
+      <div class="pair-cell">
+        <input value="${esc(p.a)}" placeholder="e.g. $2x$"
+               oninput="pairs[${i}].a = this.value; markDirty();">
+        <label class="img-upload-btn" title="Upload image for answer">
+          ${aImg ? '<span class="img-indicator">🖼</span>' : '📎'}
+          <input type="file" accept="image/*" style="display:none"
+                 onchange="handleImage(event, ${i}, 'a')">
+        </label>
+        ${aImg ? `<img src="${aImg}" class="img-thumb" onclick="clearImage(${i},'a')" title="Click to remove">` : ''}
+      </div>
+      <button class="del" onclick="delPair(${i})" title="Remove">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function addPair() {
+  pairs.push({ q: '', a: '', qi: null, ai: null });
+  renderSidebar();
+  markDirty();
+}
+
+function delPair(i) {
+  pairs.splice(i, 1);
+  delete images[i];
+  // Re-key images above i
+  const newImages = {};
+  Object.keys(images).forEach(k => {
+    const ki = parseInt(k);
+    newImages[ki < i ? ki : ki - 1] = images[k];
+  });
+  Object.keys(images).forEach(k => delete images[k]);
+  Object.assign(images, newImages);
+  renderSidebar();
+  markDirty();
+}
+
+function handleImage(event, i, side) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (!images[i]) images[i] = { q: null, a: null };
+    images[i][side] = e.target.result;
+    renderSidebar();
+    markDirty();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage(i, side) {
+  if (images[i]) images[i][side] = null;
+  renderSidebar();
+  markDirty();
+}
+
+// ─── Chain construction ───────────────────────────────────────────────────
+//
+//  Given pairs [ (Q0,A0), (Q1,A1), ..., (Qn-1,An-1) ]
+//
+//  The chain works like this:
+//    Card 0:  [START]  |  Q_perm[0]
+//    Card 1:  A_perm[0]  |  Q_perm[1]
+//    Card 2:  A_perm[1]  |  Q_perm[2]
+//    ...
+//    Card n:  A_perm[n-1]  |  [END]
+//
+//  Each card[k] (k=1..n-1) has LEFT = A_perm[k-1], RIGHT = Q_perm[k]
+//  i.e. the answer from one pair, the question from another.
+//
+//  We then SHUFFLE the cards before display so students must reconstruct.
+//  Each card stores its chainPosition so we can map print-labels back to
+//  chain order for the answer key.
+
+function buildChain(pairsIn) {
+  const n = pairsIn.length;
+  // Create a random permutation of pair indices
+  const perm = shuffle([...Array(n).keys()]);
+
+  // Build ordered cards (chain order — NOT the printed order)
+  // Each pairsIn entry carries its original index so we can look up images
+  const ordered = [];
+
+  // Card 0: START label | first question
+  const p0 = pairsIn[perm[0]];
+  ordered.push({
+    left: null, leftImg: null,
+    right: p0.q, rightImg: p0.origIdx != null ? (images[p0.origIdx]?.q || null) : null,
+    isStart: true, isEnd: false, chainPosition: 0
+  });
+
+  // Middle cards: answer[k-1] | question[k]
+  for (let k = 1; k < n; k++) {
+    const prev = pairsIn[perm[k-1]];
+    const curr = pairsIn[perm[k]];
+    ordered.push({
+      left:  prev.a,
+      leftImg:  prev.origIdx != null ? (images[prev.origIdx]?.a || null) : null,
+      right: curr.q,
+      rightImg: curr.origIdx != null ? (images[curr.origIdx]?.q || null) : null,
+      isStart: false, isEnd: false, chainPosition: k
+    });
+  }
+
+  // Final card: last answer | END label
+  const pLast = pairsIn[perm[n-1]];
+  ordered.push({
+    left: pLast.a,
+    leftImg: pLast.origIdx != null ? (images[pLast.origIdx]?.a || null) : null,
+    right: null, rightImg: null,
+    isStart: false, isEnd: true, chainPosition: n
+  });
+
+  return ordered; // length = n+1
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ─── Generate ─────────────────────────────────────────────────────────────
+async function generatePuzzle() {
+  const valid = pairs
+    .map((p, i) => ({ ...p, origIdx: i }))
+    .filter(p => (p.q || '').trim() && (p.a || '').trim());
+  if (valid.length < 3) {
+    alert('Please enter at least 3 complete question/answer pairs.');
+    return;
+  }
+
+  document.getElementById('status').innerHTML = 'Building chain…';
+
+  const title    = document.getElementById('cfg-title').value  || 'Domino Chain Puzzle';
+  const subtitle = document.getElementById('cfg-sub').value    || '';
+  const instr    = document.getElementById('cfg-instr').value  || '';
+  const showKey  = document.getElementById('cfg-key').checked;
+  const doShuffle = document.getElementById('cfg-shuffle').checked;
+
+  // Build the chain
+  const orderedCards = buildChain(valid);
+
+  // Optionally shuffle for printing
+  let printCards = [...orderedCards];
+  if (doShuffle) {
+    printCards = shuffle(printCards);
+  }
+
+  // Assign print labels (A, B, C…) and record which label each chain-position got
+  const labelByChainPos = {};
+  printCards.forEach((card, idx) => {
+    card.printLabel = String.fromCharCode(65 + idx);
+    labelByChainPos[card.chainPosition] = card.printLabel;
+  });
+
+  // ── Build sheet HTML ──
+  const sheet = document.getElementById('sheet');
+
+  const today = new Date().toLocaleDateString('en-NZ', { day:'numeric', month:'long', year:'numeric' });
+
+  // ── Cards per page calculation ──
+  // Sheet width 648px (720 - 2*36px padding), card width 320px, gap 10px
+  // 2 cards per row = 2*320 + 1*10 = 650 ≈ fits
+  // Page 1 loses header + instructions ≈ 160px; subsequent pages lose cont-header ≈ 40px
+  // Card height unknown yet — recalculated in equaliseAndPaginate() after render.
+  const CARDS_PER_ROW = 2;
+  // Temporarily use 12 cards/page as initial layout; equaliseAndPaginate() will fix it.
+  const CARDS_PER_PAGE_INITIAL = 12;
+
+  let html = `
+    <div class="print-page" id="page-1">
+      <div class="sheet-title-row">
+        <div>
+          <div class="sheet-title">${title}</div>
+          <div class="sheet-sub">${subtitle}</div>
+        </div>
+        <div class="sheet-meta">
+          ${valid.length} pairs &nbsp;·&nbsp; ${printCards.length} cards<br>
+          ${today}
+        </div>
+      </div>
+      <div class="sheet-instructions">${instr}</div>
+      <div class="cards-grid">
+  `;
+
+  printCards.forEach((card, idx) => {
+    const leftClass  = card.isStart ? 'dom-half dom-special' : 'dom-half dom-a';
+    const rightClass = card.isEnd   ? 'dom-half dom-special' : 'dom-half dom-q';
+
+    function cellHTML(text, imgSrc, isStart, isEnd, startLabel, endLabel) {
+      if (isStart) return `<em style="color:#aaa;font-size:0.72rem">${startLabel}</em>`;
+      if (isEnd)   return `<em style="color:#aaa;font-size:0.72rem">${endLabel}</em>`;
+      // Show text and/or image — both if both are present
+      let out = '';
+      if (text && text.trim()) out += `<div class="cell-text">${text}</div>`;
+      if (imgSrc) out += `<img src="${imgSrc}" class="card-img" alt="">`;
+      return out || '';
+    }
+
+    const leftContent  = cellHTML(card.left,  card.leftImg,  card.isStart, false, 'START', '');
+    const rightContent = cellHTML(card.right, card.rightImg, false, card.isEnd, '', 'END');
+
+    html += `
+      <div class="domino">
+        <div class="${leftClass}"><div class="inner">${leftContent}</div></div>
+        <div class="dom-divider"></div>
+        <div class="${rightClass}"><div class="inner">${rightContent}</div></div>
+        <div class="dom-label">${card.printLabel}</div>
+      </div>
+    `;
+  });
+
+  // Close initial single page — equaliseAndPaginate() will redistribute
+  html += `</div>
+      <hr class="cut-line">
+      <div class="cut-label">✂ Cut along dashed line — shuffle before distributing</div>
+    </div>`;
+
+  // Answer key — shows the correct chain order by card label
+  if (showKey) {
+    // Build chain sequence: positions 0,1,2,...,n in order
+    const totalPositions = orderedCards.length;
+    const chainSequence = [];
+    for (let pos = 0; pos < totalPositions; pos++) {
+      chainSequence.push(labelByChainPos[pos]);
+    }
+
+    html += `
+      <div class="answer-key">
+        <div class="ak-head">Answer Key — Teacher Copy Only</div>
+        <div class="ak-chain">
+          <div class="ak-chain-label">Correct card order:</div>
+          <div class="ak-chain-sequence">
+            ${chainSequence.map((lbl, i) => `
+              <span class="ak-card-lbl">${lbl}</span>
+              ${i < chainSequence.length - 1 ? '<span class="ak-arrow">→</span>' : ''}
+            `).join('')}
+          </div>
+        </div>
+        <div class="ak-table-wrap">
+          <table class="ak-table">
+            <thead><tr><th>Card</th><th>Left side (Answer)</th><th>Right side (Question)</th></tr></thead>
+            <tbody>
+    `;
+    // List each card in chain order with its label
+    for (let pos = 0; pos < totalPositions; pos++) {
+      const card = orderedCards[pos];
+      const lbl  = labelByChainPos[pos];
+
+      function akCell(text, imgSrc, isSpecial, specialLabel) {
+        if (isSpecial) return `<em style="color:#aaa">${specialLabel}</em>`;
+        let out = '';
+        if (text && text.trim()) out += `<span>${text}</span>`;
+        if (imgSrc) out += `<img src="${imgSrc}" class="ak-img" alt="">`;
+        return out || '—';
+      }
+
+      const leftCell  = akCell(card.left,  card.leftImg,  card.isStart, '— START —');
+      const rightCell = akCell(card.right, card.rightImg, card.isEnd,   '— END —');
+
+      html += `<tr>
+        <td><strong>${lbl}</strong></td>
+        <td class="ak-a">${leftCell}</td>
+        <td class="ak-q">${rightCell}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+  }
+
+  sheet.innerHTML = html;
+
+  // Typeset all MathJax, then equalise all card heights
+  if (window.MathJax?.typesetPromise) {
+    await MathJax.typesetPromise([sheet]);
+  }
+  equaliseAndPaginate();
+
+  const status = doShuffle
+    ? `Cards are <strong>shuffled</strong> — students must reconstruct the chain. ${printCards.length} cards from ${valid.length} pairs.`
+    : `Cards shown in chain order (unshuffled). ${printCards.length} cards from ${valid.length} pairs.`;
+  document.getElementById('status').innerHTML = status;
+
+  // Mark puzzle as clean — print buttons won't regenerate until something changes
+  puzzleDirty = false;
+  lastPairsSnapshot = settingsSnapshot();
+}
+
+async function printCards() {
+  if (puzzleDirty || settingsSnapshot() !== lastPairsSnapshot) {
+    await generatePuzzle();
+  }
+  setTimeout(() => {
+    document.body.classList.add('print-cards-only');
+    window.print();
+    document.body.classList.remove('print-cards-only');
+  }, 300);
+}
+
+async function printKey() {
+  if (!document.getElementById('cfg-key').checked) {
+    alert('Enable "Include answer key" first.');
+    return;
+  }
+  if (puzzleDirty || settingsSnapshot() !== lastPairsSnapshot) {
+    await generatePuzzle();
+  }
+  setTimeout(() => {
+    document.body.classList.add('print-key-only');
+    window.print();
+    document.body.classList.remove('print-key-only');
+  }, 300);
+}
+
+// ─── Equalise heights + paginate ─────────────────────────────────────────
+// 1. Measure each card's natural scrollHeight
+// 2. Set all cards to the same max height
+// 3. Work out how many cards fit per printed A4 page
+// 4. Redistribute cards into separate .print-page divs
+
+function equaliseAndPaginate() {
+  const sheet = document.getElementById('sheet');
+  const allCards = Array.from(sheet.querySelectorAll('.domino'));
+  if (!allCards.length) return;
+
+  const NARROW_W = 210;  // 3 per row  (3×210 + 2×10gap = 650px — fits in fluid sheet)
+  const WIDE_W   = 320;  // 2 per row  (2×320 + 1×10gap = 650px — same footprint)
+
+  // ── Step 1: detect whether wide layout is needed ──
+  // Strategy: measure each card's inner .dom-half divs at a very wide width
+  // (where nothing wraps), then again at NARROW_W. If height increases at
+  // narrow width, the content is wrapping → needs wide layout.
+  // Images always need wide layout.
+  const hasImages = !!sheet.querySelector('.card-img');
+
+  let needsWide = hasImages;
+
+  if (!needsWide) {
+    // Measure at unconstrained width
+    allCards.forEach(c => {
+      c.style.width  = '800px';
+      c.style.height = '';
+      c.classList.remove('sized');
+    });
+    void sheet.offsetHeight;
+    // Record natural (unwrapped) height of each half
+    const naturalHeights = allCards.map(c => {
+      const halves = c.querySelectorAll('.dom-half');
+      return Math.max(...Array.from(halves).map(h => h.scrollHeight));
+    });
+
+    // Now measure at narrow width
+    allCards.forEach(c => { c.style.width = NARROW_W + 'px'; });
+    void sheet.offsetHeight;
+    const narrowHeights = allCards.map(c => {
+      const halves = c.querySelectorAll('.dom-half');
+      return Math.max(...Array.from(halves).map(h => h.scrollHeight));
+    });
+
+    // If any card's half is taller at narrow width → content wrapped
+    needsWide = narrowHeights.some((h, i) => h > naturalHeights[i] + 4);
+  }
+
+  const CARD_W        = needsWide ? WIDE_W   : NARROW_W;
+  const CARDS_PER_ROW = needsWide ? 2        : 3;
+
+  // Set final width and reset height for clean measurement
+  allCards.forEach(c => {
+    c.style.width  = CARD_W + 'px';
+    c.style.height = '';
+    c.classList.remove('sized');
+  });
+  void sheet.offsetHeight;
+
+  // ── Step 2: equalise heights ──
+  const heightFloor = hasImages ? 200 : (needsWide ? 100 : 80);
+  let maxH = heightFloor;
+  allCards.forEach(c => { maxH = Math.max(maxH, c.scrollHeight); });
+  const cardH = maxH + 2; // +2 for border
+
+  allCards.forEach(c => { c.style.height = maxH + 'px'; c.classList.add('sized'); });
+
+  // ── Step 3: cards per page ──
+  const PAGE_H       = 1050;  // conservative usable print height in px
+  const PAGE1_HEADER = 165;   // title + instructions + cut-line area
+  const CONT_HEADER  = 50;    // continuation page mini-header
+  const ROW_H        = cardH + 10;
+
+  const rowsPage1 = Math.max(1, Math.floor((PAGE_H - PAGE1_HEADER) / ROW_H));
+  const rowsCont  = Math.max(1, Math.floor((PAGE_H - CONT_HEADER)  / ROW_H));
+  const cardsPage1 = rowsPage1 * CARDS_PER_ROW;
+  const cardsCont  = rowsCont  * CARDS_PER_ROW;
+
+  // ── Step 4: redistribute into pages ──
+  // Collect card elements in order
+  const cardEls = [...allCards];
+  const totalCards = cardEls.length;
+
+  // Build page chunks
+  const chunks = [];
+  let remaining = [...cardEls];
+
+  // Page 1
+  chunks.push(remaining.splice(0, cardsPage1));
+  // Subsequent pages
+  while (remaining.length > 0) {
+    chunks.push(remaining.splice(0, cardsCont));
+  }
+
+  const totalPages = chunks.length;
+  const titleEl   = sheet.querySelector('.sheet-title')?.textContent || '';
+
+  // Rebuild sheet HTML structure around existing card elements
+  // We'll detach cards, rebuild page wrappers, then re-attach
+
+  // Save answer key HTML (if present) — we'll reattach it after
+  const akEl = sheet.querySelector('.answer-key');
+  const akHTML = akEl ? akEl.outerHTML : '';
+  if (akEl) akEl.remove();
+
+  // Remove all existing .print-page wrappers but keep cards detached
+  sheet.querySelectorAll('.print-page').forEach(p => p.remove());
+
+  // Rebuild pages
+  chunks.forEach((chunkCards, pageIdx) => {
+    const pageNum = pageIdx + 1;
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'print-page';
+    pageDiv.id = `page-${pageNum}`;
+
+    if (pageIdx === 0) {
+      // Page 1 keeps the original header & instructions
+      const titleRow = sheet.querySelector('.sheet-title-row');
+      const instrEl  = sheet.querySelector('.sheet-instructions');
+      if (titleRow) pageDiv.appendChild(titleRow.cloneNode(true));
+      if (instrEl)  pageDiv.appendChild(instrEl.cloneNode(true));
+    } else {
+      // Continuation pages get a slim header
+      const contH = document.createElement('div');
+      contH.className = 'page-cont-header';
+      contH.innerHTML = `<strong>${titleEl}</strong><span class="page-num">Page ${pageNum} of ${totalPages}</span>`;
+      pageDiv.appendChild(contH);
+    }
+
+    // Card grid
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+    chunkCards.forEach(c => grid.appendChild(c));
+    pageDiv.appendChild(grid);
+
+    // Cut line on every card page
+    pageDiv.insertAdjacentHTML('beforeend', `
+      <hr class="cut-line" style="margin-top:14px">
+      <div class="cut-label">✂ Cut along dashed line — shuffle before distributing</div>
+    `);
+
+    sheet.appendChild(pageDiv);
+  });
+
+  // Remove stale header/instructions from sheet root (now inside page-1)
+  sheet.querySelectorAll(':scope > .sheet-title-row, :scope > .sheet-instructions').forEach(e => e.remove());
+
+  // Re-attach answer key
+  if (akHTML) sheet.insertAdjacentHTML('beforeend', akHTML);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+renderSidebar();
+</script>
+</body>
+</html>
