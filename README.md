@@ -2,7 +2,7 @@
 
 A free, browser-based tool for creating printable domino chain matching puzzles for mathematics classrooms. Built with teachers in mind — no installation, no account, no cost.
 
-**[Try it live →](https://yourusername.github.io/domino-puzzle-generator)**
+**[Try it live →](https://ironstamp.github.io/domino-puzzle-generator)**
 
 ---
 
