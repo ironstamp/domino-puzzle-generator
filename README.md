@@ -104,4 +104,13 @@ Free to use, share, and adapt for educational purposes. If you improve it, pleas
 
 ---
 
-*Created by a mathematics teacher at St Paul's Collegiate School, Hamilton, New Zealand.*
+## More classroom tools
+
+- [Classroom Manager](https://ironstamp.github.io/classroom-tool): post, schedule and copy Google Classroom courses
+- [Group Allocator](https://ironstamp.github.io/group-picker): randomly split a class into groups
+- [Score Tracker](https://ironstamp.github.io/scoretracker): live projected scores with a countdown timer
+- [Tarsia Puzzle Generator](https://ironstamp.github.io/tarsia-generator): printable triangle-matching puzzles
+
+---
+
+*Made by Paul Carter, mathematics teacher, New Zealand.*
